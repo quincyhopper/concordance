@@ -1,7 +1,6 @@
 import re
 import os
 from pathlib import Path
-
 import spacy
 import pandas as pd
 from spacy.tokens import Token
@@ -30,7 +29,10 @@ def get_metadata(filename:str, documentation: pd.DataFrame):
 
 def preprocess(text: str):
     text = re.sub(r'[^\x00-\x7F]+', '', text) # Delete weird characters like Äî
-    return text
+    text = re.sub(r'\n+', '. ', text) # Remove new lines and join with ". "
+    text = re.sub(r'([?.!,])\.', r'\1', text) # Remove double punctuation e.g. "!."
+    text = re.sub(r' +', ' ', text)
+    return text.strip()
 
 def find_helps(text:str, window: int=200):
     """Search a large string for an occurrence of help, and return the chunk of text containing that occurrence. This chunk will be used for deriving the variables, not for display.
@@ -406,7 +408,7 @@ if __name__ == "__main__":
 
         # Preprocess and find instances of HELP
         cleaned_text = preprocess(text)
-        examples = find_helps(cleaned_text, window=500)
+        examples = find_helps(cleaned_text, window=200)
 
         # If we find no examples of HELP, skip the file
         if not examples:
