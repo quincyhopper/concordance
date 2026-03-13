@@ -79,19 +79,20 @@ def get_np_tokens(obj_token: Token):
 
     return np_tokens
                     
-def extract_object(token: Token):
+def extract_object(token: Token, is_verb_with_comp: bool):
     """Attempt to locate the object of HELP and return a dictionary with the object's POS-tag (PRON or NP) and a list of the all the tokens that make up the object (i.e. the object's subtree). This is useful for counting how long the object is.
 
     Sometimes the object is stored as the nsubj of the complement. E.g. in "I helped the doctor save the patient", "the doctor" is not a dobj of HELP, but a nsubj of the complement. We check for this.
 
     Args:
         token: the HELP token.
+        is_verb_with_comp: True if HELP is verb and has complement clause.
 
     Returns:
         Dictionary with empty values if no object found. Otherwise, dictionary with list of words making up the object and the object's POS-tag.
     """
-    result = {'words': [], 'tag': 'NA', 'head': 'NA'}
-    if token.pos_ != "VERB": 
+    result = {'tag': 'NA', 'head': 'NA', 'len': 'NA', 'present': 'NA'}
+    if not is_verb_with_comp: 
         return result
     
     dobj = None
@@ -105,24 +106,23 @@ def extract_object(token: Token):
             comp_verb = child
     
     obj = dobj
-    if not obj and comp_verb:
-            # Found a complement verb and did NOT find a direct object
+    if not obj and comp_verb: # Found a complement verb and did NOT find a direct object
             for gc in comp_verb.children:
                 # Subject must occur inbetween HELP (token.i) and the complement verb (comp_verb.i)
                 if gc.dep_ == 'nsubj' and token.i < gc.i < comp_verb.i:
                     obj = gc
-                    result['head'] = obj.text
                     break
                 
     # Process object if found
-    if obj:
-        result['words'] = get_np_tokens(obj)
+    if obj is not None:
         result['tag'] = 'PRO' if obj.pos_ == 'PRON' else 'NP'
-        if not result['head']:
-            # Use the actual object head text (not necessarily lemma)
-            result['head'] = obj.text
-
-    return result
+        result['head'] = obj.text
+        result['len'] = len(get_np_tokens(obj))
+        result['present'] = 'yes'
+        return result
+    else:
+        result['present'] = 'No'
+        return result
 
 def extract_subject(token: Token):
     # Default values for verbs without an overt subject
@@ -194,22 +194,17 @@ def bare_vs_full(token: Token):
 
             if child.sent != token.sent:
                 continue
-
             # Reject complements separated by clause boundaries
             if any(t.dep_ in {"advcl", "relcl"} for t in token.doc[token.i:child.i]):
                 continue
-
             if any(t.is_punct for t in token.doc[token.i:child.i]):
                 continue
-
             if child.lemma_ in {"be", "do", "have"}:
                 continue
-
-
             # ING pattern
             if child.tag_ == "VBG":
                 return "ING"
-
+            
             # Check for "to"
             has_to = any(c.lemma_ == "to" for c in child.children)
 
@@ -223,30 +218,25 @@ def bare_vs_full(token: Token):
 def verb_lemma(token: Token):
     """Return the lemma of the complement clause."""
     if token.pos_ != 'VERB':
-        return None 
+        return 'NA' 
 
     for child in token.children:
         if child.dep_ in ('ccomp', 'xcomp'):
-
             if child.sent != token.sent:
                 continue
-
             if child.i - token.i > 30:
                 continue
-
             if child.lemma in {"be", "do", "have"}:
                 continue
-
-            # Check for 'that' clause
             if any(c.dep_ == 'mark' and c.lemma_ == 'that' for c in child.children):
                 continue
-
             return child.lemma_
-    
-    return None
+    return 'NA'
         
 def get_polarity(token: Token):
     """Classify polarity of HELP."""
+    if token.pos_ != 'VERB':
+        return 'NA'
 
     neg_words = {'not', "n't", 'nor', 'never', 'hardly', 'scarcely', 'barely', 'no', 'nobody', 'nothing', 'nowhere'}
 
@@ -263,6 +253,9 @@ def get_polarity(token: Token):
 
 def get_voice(token: Token):
     """Classify the voice of the HELP instance."""
+    if token.pos_ != 'VERB':
+        return "NA"
+
     if any(child.dep_ in ('nsubjpass', 'auxpass') for child in token.children):
         return "Passive"
     return "Active"
@@ -284,14 +277,14 @@ def horror_aequi(token: Token):
         return 'YEStoBefore'
     return 'NOtoBefore'
 
-def count_intervening(token):
-    if token.pos_ != "VERB":
+def count_intervening(token: Token, is_verb_with_comp: bool):
+    if not is_verb_with_comp:
         return 'NA'
 
     for child in token.children:
         if child.dep_ in ("xcomp", "ccomp") and "VerbForm=Inf" in child.morph:
             if child.i - token.i > 30:
-                return None
+                return 'NA'
 
             intervening = 0
             for t in token.doc[token.i+1:child.i]:
@@ -330,40 +323,8 @@ def get_kwic(text, global_start, global_end, before_window, after_window):
 if __name__ == "__main__":
     # Load spaCy Language object and documentation file
     nlp = spacy.load('en_core_web_lg')
-
-    # Resolve paths relative to this script so the project can be run from any CWD.
-    base_dir = Path(__file__).resolve().parent
-    old_bailey_dir = base_dir / "OldBailey"
-
-    parquet_path = old_bailey_dir / "Documentation.parquet"
-    excel_path = old_bailey_dir / "Documentation.xlsx"
-
-    # Documentation metadata is stored in an Excel file; cache it as parquet for faster subsequent runs.
-    if parquet_path.exists():
-        documentation = pd.read_parquet(parquet_path)
-    elif excel_path.exists():
-        documentation = pd.read_excel(excel_path, dtype={"FileID": str})
-        documentation = documentation.set_index("FileID")
-
-        # Convert the column types to stable formats so parquet can be written reliably.
-        documentation = documentation.astype(str)
-
-        documentation.to_parquet(parquet_path, index=True)
-    else:
-        raise FileNotFoundError(
-            f"Neither {parquet_path} nor {excel_path} were found. "
-            "Please provide the Old Bailey documentation file."
-        )
-
-    # Ensure the documentation index is file ID, matching how get_metadata looks it up.
-    if documentation.index.name != "FileID":
-        if "FileID" in documentation.columns:
-            documentation = documentation.set_index("FileID")
-        else:
-            documentation.index.name = "FileID"
-
-    # Get the files in the corpus
-    files = get_texts(str(old_bailey_dir / "Processed files"))
+    documentation = pd.read_parquet('OldBailey/Documentation.parquet')
+    files = get_texts('OldBailey/Processed files/')
 
     # Loop over files in the corpus directory
     results = []
@@ -385,13 +346,10 @@ if __name__ == "__main__":
         # Tokenise, POS-tag, dependency parse, etc
         # Using nlp.pipe basically for batch processing - much faster when we get lots of texts
         docs = nlp.pipe([e['text'] for e in examples])
-
-        # Loop over each chunk containing HELP
         for doc, indices in zip(docs, examples):
 
             # Start and end indices of HELP in cleaned text
             m_start, m_end = indices['match_span']
-
             for token in doc:
 
                 # Get starting index of this token in the cleaned text file
@@ -400,42 +358,34 @@ if __name__ == "__main__":
                 # If token's global position is the same as the HELP instance we're targetting...
                 if m_start <= token_global_start < m_end and 'help' in token.lower_:
 
-                    is_verb = token.pos_ == 'VERB'
-                    dep_var = bare_vs_full(token) if is_verb else 'NA'
-                    if dep_var is None:
-                        dep_var = 'NA'
-
                     subj = extract_subject(token)
-
-                    # If there is no complement, object information should be NA
-                    has_complement = dep_var != 'NA'
-                    obj = extract_object(token) if is_verb and has_complement else {'words': [], 'tag': 'NA', 'head': 'NA'}
+                    dep_var = bare_vs_full(token)
+                    is_verb_with_comp = (token.pos_ == 'VERB' and dep_var != 'NA')
+                    obj = extract_object(token, is_verb_with_comp)
 
                     result = {
                         'KWIC': get_kwic(cleaned_text, token_global_start, m_end, 240, 480),
                         'DepVar': dep_var,
                         'HelpClass': token.pos_,
                         'HelpInflection': token.tag_,
-                        'Voice': get_voice(token) if is_verb else 'NA',
-                        'HorrorAequi': horror_aequi(token) if is_verb else 'NA',
-                        'Polarity': get_polarity(token) if is_verb else 'NA',
-                        'VerbLemma': (verb_lemma(token) or 'NA') if is_verb else 'NA',
+                        'Voice': get_voice(token),
+                        'HorrorAequi': horror_aequi(token),
+                        'Polarity': get_polarity(token),
+                        'VerbLemma': verb_lemma(token),
                         'SubjType': subj['pos'],
                         'SubjHead': subj['head'],
                         'SubjAnimacy': subj['animacy'],
-                        'ObjPresent': 'Yes' if obj['words'] else ('No' if is_verb and has_complement else 'NA'),
-                        'ObjTag': obj['tag'] if is_verb and has_complement else 'NA',
-                        'ObjLength': len(obj['words']) if (is_verb and has_complement and obj['words']) else 'NA',
-                        'ObjHead': obj['head'] if is_verb and has_complement else 'NA',
-                        'IntervWords': (count_intervening(token) or 'NA') if (is_verb and has_complement) else 'NA',
+                        'ObjPresent': obj['present'],
+                        'ObjTag': obj['tag'],
+                        'ObjLength': obj['len'],
+                        'ObjHead': obj['head'],
+                        'IntervWords': count_intervening(token, is_verb_with_comp),
                         'Filename': file.name,
+                        **metadata.to_dict()
                     }
-
-                    # Add metadata to dict
-                    result.update(metadata)
-
                     results.append(result)
                     break
+
 print(f"Processed {len(results)} instances of help")
 
 #Save CSV file
