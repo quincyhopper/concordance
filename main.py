@@ -46,7 +46,7 @@ def find_helps(text:str, window: int=200):
     """
 
     # Pattern finds unhelpful, helpfully, helps, etc
-    pattern = re.compile(r"\b\w*help\w*\b", flags=re.IGNORECASE)
+    pattern = re.compile(r"\b(un)?help\w*\b", flags=re.IGNORECASE)
     examples = []
 
     for match in pattern.finditer(text):
@@ -397,10 +397,8 @@ if __name__ == "__main__":
                 # Get starting index of this token in the cleaned text file
                 token_global_start = token.idx + indices['context_start']
 
-                is_help = re.search(r'\b(un)?help.\w*\b', token.lower_)
-
                 # If token's global position is the same as the HELP instance we're targetting...
-                if m_start <= token_global_start < m_end and is_help:
+                if m_start <= token_global_start < m_end and 'help' in token.lower_:
 
                     is_verb = token.pos_ == 'VERB'
                     dep_var = bare_vs_full(token) if is_verb else 'NA'
