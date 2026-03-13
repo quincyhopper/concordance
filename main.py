@@ -282,6 +282,10 @@ def count_intervening(token: Token, is_verb_with_comp: bool):
         return 'NA'
 
     for child in token.children:
+
+        # Cancel if we come across a 'prt', like "help up"
+        if child.dep_ == 'prt':
+            return 'NA'
         if child.dep_ in ("xcomp", "ccomp") and "VerbForm=Inf" in child.morph:
             if child.i - token.i > 30:
                 return 'NA'
