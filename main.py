@@ -219,32 +219,6 @@ def bare_vs_full(token):
                 return "BARE"
 
     return "NA"
-
-def analyse_morphology_of_help(raw_text: str):
-    from collections import defaultdict
-    text = preprocess(raw_text)
-    examples = find_helps(text)
-    morphology_counts = defaultdict(int)
-    results_morphology = [] 
-
-    for ex in examples:
-        doc = nlp(ex['text'])
-        local_start = ex['match_span'][0] - ex['context_start']
-        local_end = ex['match_span'][1] - ex['context_start']
-
-        for token in doc:
-            if token.idx == local_start:
-                tag_to_bucket = {'VBG': '-ing', 'VBD': '-ed', 'VBN': '-ed', 'VBZ': '-s', 'VB': 'base', 'VBP': 'base'}
-                bucket = tag_to_bucket.get(token.tag_, 'base')
-                morphology_counts[bucket] += 1
-                results_morphology.append({
-                    **ex,
-                    'token': token.text,
-                    'lemma': token.lemma_,
-                    'MorphologyOfHelp': bucket, 
-                })
-                break
-    return results_morphology, dict(morphology_counts)
     
 def verb_lemma(token: Token):
     """Return the lemma of the complement clause."""
@@ -455,7 +429,6 @@ if __name__ == "__main__":
                         'HorrorAequi': horror_aequi(token) if is_verb else 'NA',
                         'Polarity': get_polarity(token) if is_verb else 'NA',
                         'VerbLemma': (verb_lemma(token) or 'NA') if is_verb else 'NA',
-                        'MorphologyOfHelp': {'VBG': '-ing', 'VBD': '-ed', 'VBN': '-ed', 'VBZ': '-s', 'VB': 'base', 'VBP': 'base'}.get(token.tag_, 'base') if is_verb else 'NA',
                         'SubjType': subj['pos'],
                         'SubjHead': subj['head'],
                         'SubjAnimacy': subj['animacy'],
@@ -464,7 +437,7 @@ if __name__ == "__main__":
                         'ObjLength': len(obj['words']) if (is_verb and has_complement and obj['words']) else 'NA',
                         'ObjHead': obj['head'] if is_verb and has_complement else 'NA',
                         'IntervWords': (count_intervening(token) or 'NA') if (is_verb and has_complement) else 'NA',
-                        'Genre': file.name,
+                        'Filename': file.name,
                     }
 
                     # Add metadata to dict
