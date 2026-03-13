@@ -168,7 +168,7 @@ def animacy(subj: Token):
     return "Inanimate"
 
 
-def bare_vs_full(token):
+def bare_vs_full(token: Token):
     """Classify HELP as TO, BARE, ING, INING, or NA using safer dependency rules."""
 
     if token.pos_ != "VERB":
@@ -202,7 +202,7 @@ def bare_vs_full(token):
             if any(t.is_punct for t in token.doc[token.i:child.i]):
                 continue
 
-            if child.lemma in {"be", "do", "have"}:
+            if child.lemma_ in {"be", "do", "have"}:
                 continue
 
 
@@ -285,36 +285,27 @@ def horror_aequi(token: Token):
     return 'NOtoBefore'
 
 def count_intervening(token):
-
     if token.pos_ != "VERB":
-        return None
+        return 'NA'
 
     for child in token.children:
-
-        if child.dep_ in ("xcomp", "ccomp"):
-
-            # Ignore complements too far away (assignment rule: 30 words)
+        if child.dep_ in ("xcomp", "ccomp") and "VerbForm=Inf" in child.morph:
             if child.i - token.i > 30:
                 return None
 
             intervening = 0
-
             for t in token.doc[token.i+1:child.i]:
-
                 if t.is_punct:
                     continue
-
                 if t.lower_ in {"to", "in"}:
                     continue
-
                 if t.dep_ in {"advcl", "relcl"}:
                     break
-
                 intervening += 1
 
             return intervening
 
-    return None
+    return 'NA'
 
 def get_kwic(text, global_start, global_end, before_window, after_window):
     """Return concordance line for display. This operation is decoupled from the chunk taken for parsing.
@@ -406,8 +397,10 @@ if __name__ == "__main__":
                 # Get starting index of this token in the cleaned text file
                 token_global_start = token.idx + indices['context_start']
 
+                is_help = re.search(r'\b(un)?help.\w*\b', token.lower_)
+
                 # If token's global position is the same as the HELP instance we're targetting...
-                if m_start <= token_global_start < m_end and 'help' in token.text.lower():
+                if m_start <= token_global_start < m_end and is_help:
 
                     is_verb = token.pos_ == 'VERB'
                     dep_var = bare_vs_full(token) if is_verb else 'NA'
