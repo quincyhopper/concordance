@@ -27,12 +27,51 @@ def get_metadata(filename:str, documentation: pd.DataFrame):
                                   'SocialClass2', 'OldBaileyFile'
                                   ]]
 
-def preprocess(text: str):
-    text = re.sub(r'[^\x00-\x7F]+', '', text) # Delete weird characters like Äî
-    text = re.sub(r'\n+', '. ', text) # Remove new lines and join with ". "
-    text = re.sub(r'([?.!,])\.', r'\1', text) # Remove double punctuation e.g. "!."
-    text = re.sub(r' +', ' ', text)
-    return text.strip()
+def preprocess(text:str):
+
+    text = text.replace('—', ' - ') # Replace em dash
+    text = text.replace('–', ' - ') # Replace en dash
+    text = re.sub(r'[^\x00-\x7F]+', ' ', text) # Remove ASCII
+
+    # Remove leading/trailing whitespace from each line
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    cleaned = []
+    for i, current_line in enumerate(lines):
+
+        # If at last line and there's no terminal punctuation, add full stop
+        if i == len(lines) - 1:
+            if not re.search(r'[.!?]$', current_line):
+                current_line += '.'
+            cleaned.append(current_line)
+            break
+
+        next_line = lines[i+1]
+        
+        # Line already ends in termanal punctuation: do nothing
+        if re.search(r'[.!?]$', current_line):
+            cleaned.append(current_line)
+        
+        # Line ends in non-terminal punctuation: do nothing
+        elif re.search(r'[,:;]$', current_line):
+            cleaned.append(current_line)
+
+        # Likely continuation (ends lowercase, next starts lowercase): join with space
+        elif re.search(r'[a-z]$', current_line) and re.search(r'^[a-z]', next_line):
+            cleaned.append(current_line + ' ')
+
+        # Otherwise, likely missing full stop
+        else:
+            cleaned.append(current_line + '. ')
+    
+    # Join clean lines together without seperator
+    combined = " ".join(cleaned)
+
+    combined = re.sub(r'\s+', ' ', combined)   # Remove repeated whitespace
+    combined = re.sub(r'\.\.+', '.', combined) # Remove repeated fullstops
+    combined = re.sub(r'\s+([.!?])', r'\1', combined) # " ." -> "."
+
+    return combined.strip()
 
 def find_helps(text:str, window: int=200):
     """Search a large string for an occurrence of help, and return the chunk of text containing that occurrence. This chunk will be used for deriving the variables, not for display.
@@ -368,7 +407,7 @@ if __name__ == "__main__":
                     obj = extract_object(token, is_verb_with_comp)
 
                     result = {
-                        'KWIC': get_kwic(cleaned_text, token_global_start, m_end, 240, 480),
+                        'KWIC': get_kwic(cleaned_text, token_global_start, m_end, 100, 100),
                         'DepVar': dep_var,
                         'HelpClass': token.pos_,
                         'HelpInflection': token.tag_,
@@ -390,9 +429,9 @@ if __name__ == "__main__":
                     results.append(result)
                     break
 
-print(f"Processed {len(results)} instances of help")
+    print(f"Processed {len(results)} instances of help")
 
-#Save CSV file
-df = pd.DataFrame(results)
-df.insert(0, 'Hit', range(1, len(df) + 1)) # Hit column
-df.to_csv('help_concordance.csv', index=False)
+    #Save CSV file
+    df = pd.DataFrame(results)
+    df.insert(0, 'Hit', range(1, len(df) + 1)) # Hit column
+    df.to_csv('new_preprocessing2.csv', index=False)
