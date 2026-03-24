@@ -7,5 +7,6 @@ df = df.astype(str)
 
 # Set the FileID column as the index so we can search quicker
 df = df.set_index("FileID").sort_index()
+df.index = df.index.astype(str)
 
-df.to_parquet("OldBailey/Documentation.parquet", engine='fastparquet')
+df.to_parquet("OldBailey/Documentation.parquet", engine='pyarrow')
