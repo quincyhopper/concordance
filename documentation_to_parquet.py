@@ -9,4 +9,3 @@ df = df.astype(str)
 df = df.set_index("FileID").sort_index()
 
 df.to_parquet("OldBailey/Documentation.parquet", engine='fastparquet')
-
