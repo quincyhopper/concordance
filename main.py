@@ -200,7 +200,12 @@ def animacy(subj: Token):
     if subj.lemma_.lower() in {
         "man","woman","boy","girl","person","people",
         "gentleman","lady","child","children",
-        "father","mother","brother","sister"
+        "father","mother","brother","sister", "daughter",
+        "wife", "husband", "witness", "one", "neighbour",
+        "son", "friend", "land-lord", "constable",
+        "sailor", "shipman", "mistress", "porter", "body",
+        "maid", "butcher", "stranger", "foreman", "saxon",
+        "hook", "moss"
     }:
         return "Animate"
 
