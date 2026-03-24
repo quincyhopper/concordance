@@ -439,4 +439,4 @@ if __name__ == "__main__":
     #Save CSV file
     df = pd.DataFrame(results)
     df.insert(0, 'Hit', range(1, len(df) + 1)) # Hit column
-    df.to_csv('new_preprocessing2.csv', index=False)
+    df.to_csv('help_concordance.csv', index=False)
