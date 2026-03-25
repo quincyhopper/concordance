@@ -238,9 +238,6 @@ def bare_vs_full(token: Token):
 
             if child.sent != token.sent:
                 continue
-            # Reject complements separated by clause boundaries
-            if any(t.dep_ in {"advcl", "relcl"} for t in token.doc[token.i:child.i]):
-                continue
             if any(t.is_punct for t in token.doc[token.i:child.i]):
                 continue
             if child.lemma_ in {"be", "do", "have"}:
