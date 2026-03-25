@@ -4,17 +4,36 @@ The script (`main.py`) contains a handful of very short and simple functions, fo
 
 The script is fast because it does not parse the entire corpus at once. Instead, it finds instances of *help*, takes a chunk of the surrounding text, and only parses that chunk.
 
-## TODO
-- [x] Animacy implementation
-- [x] Preprocessing 
-- [x] Add polarity indicators
-- [x] For negation, can you rule out “not only”? … not only help but also support – POS
-- [x] For ING and INING, try to change the -ing form (deciding) to the infinitive (decide) for the lemma of the head of the non-finite clause.
-- [x] Add ING and INING classification of DepVar
-- [x] Subject information (subject type, subject head)
-- [x] Metadata variables
-- [x] Object information (pronoun/noun, head of object)
-- [x] Add word class of help (`.pos_`)
+## Steup and installation
+This project uses uv for dependency management.
 
-## Issues
-If you filter the data by DepVar==BARE and sort in descending order of IntervWords, you will find a lot of bad classifications.
+**1. Install uv**
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**2. Clone the repo**
+```
+git clone https://github.com/quincyhopper/concordance.git
+```
+
+**3. Create environment and install dependencies**
+```
+uv sync
+```
+
+**4. Download spaCy Language Model**
+```
+uv run python -m spacy download en_core_web_lg
+```
+
+**5. Convert documentation .xlsx file to parquet**
+```
+uv run documentation_to_parquet.py
+```
+
+## Run
+To run the main script, run the following command. Note that you will need a directory called ``OldBailey`` which contains the ``Processed files`` directory and the ``Documentation.parquet`` file.
+```
+uv run main.py
+```
