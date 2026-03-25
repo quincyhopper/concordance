@@ -157,7 +157,7 @@ def extract_object(token: Token, is_verb_with_comp: bool):
         result['tag'] = 'PRO' if obj.pos_ == 'PRON' else 'NP'
         result['head'] = obj.text
         result['len'] = len(get_np_tokens(obj))
-        result['present'] = 'yes'
+        result['present'] = 'Yes'
         return result
     else:
         result['present'] = 'No'
@@ -168,7 +168,7 @@ def extract_subject(token: Token):
     if token.pos_ != 'VERB':
         return {'pos': 'NA', 'head': 'NA', 'animacy': 'NA'}
 
-    result = {'pos': 'NULL', 'head': 'NULL', 'animacy': 'NA'}
+    result = {'pos': 'NA', 'head': 'NA', 'animacy': 'NA'}
 
     for child in token.children:
         if child.dep_ == 'nsubj':
@@ -416,18 +416,18 @@ if __name__ == "__main__":
                         'DepVar': dep_var,
                         'HelpClass': token.pos_,
                         'HelpInflection': token.tag_,
-                        'Voice': get_voice(token),
-                        'HorrorAequi': horror_aequi(token),
-                        'Polarity': get_polarity(token),
-                        'VerbLemma': verb_lemma(token),
-                        'SubjType': subj['pos'],
-                        'SubjHead': subj['head'],
-                        'SubjAnimacy': subj['animacy'],
-                        'ObjPresent': obj['present'],
-                        'ObjTag': obj['tag'],
-                        'ObjLength': obj['len'],
-                        'ObjHead': obj['head'],
-                        'IntervWords': count_intervening(token, is_verb_with_comp),
+                        'Voice': get_voice(token) if dep_var != "NA" else "NA",
+                        'HorrorAequi': horror_aequi(token) if dep_var != "NA" else "NA",
+                        'Polarity': get_polarity(token) if dep_var != "NA" else "NA",
+                        'VerbLemma': verb_lemma(token) if dep_var != "NA" else "NA",
+                        'SubjType': subj['pos'] if dep_var != "NA" else "NA",
+                        'SubjHead': subj['head'] if dep_var != "NA" else "NA",
+                        'SubjAnimacy': subj['animacy'] if dep_var != "NA" else "NA",
+                        'ObjPresent': obj['present'] if dep_var != "NA" else "NA",
+                        'ObjTag': obj['tag'] if dep_var != "NA" else "NA",
+                        'ObjLength': obj['len'] if dep_var != "NA" else "NA",
+                        'ObjHead': obj['head'] if dep_var != "NA" else "NA",
+                        'IntervWords': count_intervening(token, is_verb_with_comp) if dep_var != "NA" else "NA",
                         'Filename': file.name,
                         **metadata.to_dict()
                     }
