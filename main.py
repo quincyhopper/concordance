@@ -166,9 +166,9 @@ def extract_object(token: Token, is_verb_with_comp: bool):
 def extract_subject(token: Token):
     # Default values for verbs without an overt subject
     if token.pos_ != 'VERB':
-        return {'pos': 'NA', 'head': 'NA', 'animacy': 'NA'}
+        return {'pos': 'NULL', 'head': 'NA', 'animacy': 'NA'}
 
-    result = {'pos': 'NA', 'head': 'NA', 'animacy': 'NA'}
+    result = {'pos': 'NULL', 'head': 'NA', 'animacy': 'NA'}
 
     for child in token.children:
         if child.dep_ == 'nsubj':
