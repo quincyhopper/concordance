@@ -205,7 +205,7 @@ def animacy(subj: Token):
         "son", "friend", "land-lord", "constable",
         "sailor", "shipman", "mistress", "porter", "body",
         "maid", "butcher", "stranger", "foreman", "saxon",
-        "hook", "moss"
+        "hook", "moss", "prisoner"
     }:
         return "Animate"
 
