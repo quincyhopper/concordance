@@ -1,8 +1,6 @@
-# Script for Corpus Linguistics
+# Extracting non-finite complement clauses from the Old Bailey Corpus
 
-The script (`main.py`) contains a handful of very short and simple functions, followed by an if-name-main block containing the main logic. The approach relies heavily on spaCy's dependency parsing. For example, you can easily move through the dependency tree using the `.children` attribute of a token (look at https://spacy.io/usage/linguistic-features for details). This makes it really easy to find the subject/object/etc.
-
-The script is fast because it does not parse the entire corpus at once. Instead, it finds instances of *help*, takes a chunk of the surrounding text, and only parses that chunk.
+This repo contains a script for extracting non-finite complement clauses that follow "help" in the Old Bailey Corpus. We rely on spaCy's dependency parsing for this task. To improve efficiency, we avoid parsing unnecessary files; we use `re` to find those files that contain "help" and then only parse a small snippet around each example. As a result, total run time is ~1 minute 30 seconds. 
 
 ## Steup and installation
 This project uses uv for dependency management.
